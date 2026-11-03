@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Virtual Hospital - VR Experience</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- UI Overlay -->
+  <div id="ui-overlay">
+    <div id="intro-panel">
+      <h1>Virtual Hospital</h1>
+      <p>Walk around, explore service rooms and interact with stations.</p>
+      <ul>
+        <li><strong>PC:</strong> WASD to move • Mouse to look • Click objects to interact</li>
+        <li><strong>VR:</strong> Use controllers • Point &amp; trigger to interact</li>
+      </ul>
+      <button id="start-btn">Enter Hospital</button>
+      <p class="small">Works best in Chrome / Edge. Press Esc to exit pointer lock.</p>
+    </div>
+
+    <div id="service-panel" class="hidden">
+      <h2 id="service-title">Service</h2>
+      <p id="service-desc"></p>
+      <button id="close-service">Close</button>
+    </div>
+
+    <div id="hud">
+      <div id="location">Lobby</div>
+      <div id="hint">Look at glowing stations and click / trigger to use services</div>
+    </div>
+  </div>
+
+  <a-scene
+    id="scene"
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
+    webxr="referenceSpaceType: local-floor"
+    vr-mode-ui="enabled: true"
+    loading-screen="dotsColor: #4fc3f7; backgroundColor: #0a1628"
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .interactive"
+  >
+    <!-- Lighting -->
+    <a-entity light="type: ambient; color: #e8f4f8; intensity: 0.65"></a-entity>
+    <a-entity light="type: directional; color: #ffffff; intensity: 0.55; castShadow: true" position="8 12 5"></a-entity>
+    <a-entity light="type: point; color: #b3e5fc; intensity: 0.4; distance: 25" position="0 4 0"></a-entity>
+
+    <!-- Player Rig -->
+    <a-entity id="rig" position="0 0 8" movement-controls="constrainToNavMesh: false; speed: 0.18">
+      <a-entity id="camera" camera look-controls="pointerLockEnabled: true" position="0 1.6 0" wasd-controls="acceleration: 25">
+        <a-cursor
+          id="cursor"
+          fuse="false"
+          raycaster="objects: .interactive; far: 8"
+          geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.018"
+          material="color: #4fc3f7; shader: flat; opacity: 0.85"
+          position="0 0 -0.8"
+          animation__click="property: scale; startEvents: click; from: 0.1 0.1 0.1; to: 1 1 1; dur: 180">
+        </a-cursor>
+      </a-entity>
+
+      <!-- VR Controllers -->
+      <a-entity id="left-hand" hand-controls="hand: left; handModelStyle: lowPoly; color: #4fc3f7"
+                laser-controls="hand: left" raycaster="objects: .interactive; far: 6"></a-entity>
+      <a-entity id="right-hand" hand-controls="hand: right; handModelStyle: lowPoly; color: #4fc3f7"
+                laser-controls="hand: right" raycaster="objects: .interactive; far: 6"></a-entity>
+    </a-entity>
+
+    <!-- ===================== HOSPITAL ENVIRONMENT ===================== -->
+
+    <!-- Floor & Ceiling -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="60" height="50"
+             material="color: #e8eef2; roughness: 0.7; metalness: 0.05" shadow="receive: true"></a-plane>
+    <a-plane position="0 4.2 0" rotation="90 0 0" width="60" height="50"
+             material="color: #f5f9fc; side: double"></a-plane>
+
+    <!-- ========== LOBBY / RECEPTION ========== -->
+    <a-entity id="lobby">
+      <a-box position="0 2 -12" width="24" height="4" depth="0.3" material="color: #f0f4f7"></a-box>
+      <a-box position="-12 2 0" width="0.3" height="4" depth="24" material="color: #f0f4f7"></a-box>
+      <a-box position="12 2 0" width="0.3" height="4" depth="24" material="color: #f0f4f7"></a-box>
+
+      <!-- Reception desk -->
+      <a-box position="0 0.55 -6" width="6" height="1.1" depth="1.4"
+             material="color: #ffffff; roughness: 0.4" class="interactive"
+             data-service="reception"
+             data-title="Reception Desk"
+             data-desc="Welcome to Virtual Hospital. Please check in here. Staff can direct you to the right department, book appointments, or answer questions about services."></a-box>
+      <a-box position="0 1.3 -6" width="6.2" height="0.08" depth="1.5" material="color: #4fc3f7"></a-box>
+
+      <!-- Chairs -->
+      <a-box position="-4 0.35 -3" width="0.7" height="0.7" depth="0.7" material="color: #90caf9"></a-box>
+      <a-box position="-2.5 0.35 -3" width="0.7" height="0.7" depth="0.7" material="color: #90caf9"></a-box>
+      <a-box position="2.5 0.35 -3" width="0.7" height="0.7" depth="0.7" material="color: #90caf9"></a-box>
+      <a-box position="4 0.35 -3" width="0.7" height="0.7" depth="0.7" material="color: #90caf9"></a-box>
+
+      <!-- Info kiosk -->
+      <a-cylinder position="5 0.9 -8" radius="0.35" height="1.8" material="color: #37474f" class="interactive"
+                  data-service="info"
+                  data-title="Information Kiosk"
+                  data-desc="Hospital map & directory. Departments: Reception • Consultation Rooms • Pharmacy • Emergency • Laboratory • Patient Wards • Cafeteria."></a-cylinder>
+      <a-box position="5 1.9 -8" width="0.9" height="0.6" depth="0.08" material="color: #4fc3f7"></a-box>
+
+      <a-text value="VIRTUAL HOSPITAL" position="0 3.4 -11.7" align="center" color="#1565c0" width="12"></a-text>
+      <a-text value="Patient Care • Excellence • Compassion" position="0 3.0 -11.7" align="center" color="#546e7a" width="8"></a-text>
+    </a-entity>
+
+    <!-- ========== CORRIDOR ========== -->
+    <a-entity id="corridor">
+      <a-box position="-4 2 -18" width="0.25" height="4" depth="14" material="color: #e3f2fd"></a-box>
+      <a-box position="4 2 -18" width="0.25" height="4" depth="14" material="color: #e3f2fd"></a-box>
+      <a-box position="0 2 -25" width="8.5" height="4" depth="0.25" material="color: #e3f2fd"></a-box>
+      <a-box position="0 0.01 -18" width="1.2" height="0.02" depth="14" material="color: #4fc3f7"></a-box>
+      <a-text value="← Pharmacy  |  Consultation →" position="0 2.8 -14" align="center" color="#1565c0" width="6"></a-text>
+      <a-text value="Emergency →  |  Laboratory ←" position="0 2.5 -14" align="center" color="#c62828" width="5.5"></a-text>
+    </a-entity>
+
+    <!-- ========== CONSULTATION ROOM ========== -->
+    <a-entity id="consult-room" position="8 0 -18">
+      <a-box position="0 2 0" width="7" height="4" depth="0.2" material="color: #fafafa"></a-box>
+      <a-box position="0 2 -6" width="7" height="4" depth="0.2" material="color: #fafafa"></a-box>
+      <a-box position="-3.5 2 -3" width="0.2" height="4" depth="6.2" material="color: #fafafa"></a-box>
+      <a-box position="3.5 2 -3" width="0.2" height="4" depth="6.2" material="color: #fafafa"></a-box>
+      <a-box position="-3.5 1.2 0" width="0.15" height="2.4" depth="1.1" material="color: #90a4ae"></a-box>
+
+      <a-box position="0 0.7 -3.5" width="2.2" height="0.1" depth="1.1" material="color: #eceff1" class="interactive"
+             data-service="consultation"
+             data-title="Consultation Room"
+             data-desc="Speak with a doctor. Describe your symptoms. The virtual physician will guide you through next steps, referrals, or basic advice."></a-box>
+      <a-box position="0 0.35 -3.5" width="2.0" height="0.7" depth="0.9" material="color: #cfd8dc"></a-box>
+      <a-box position="-0.7 0.35 -2.2" width="0.55" height="0.7" depth="0.55" material="color: #64b5f6"></a-box>
+      <a-box position="0.7 0.35 -4.5" width="0.55" height="0.7" depth="0.55" material="color: #64b5f6"></a-box>
+      <a-box position="2 0.45 -1.5" width="0.9" height="0.5" depth="2.0" material="color: #ffffff"></a-box>
+      <a-box position="2 0.75 -0.6" width="0.9" height="0.15" depth="0.3" material="color: #e3f2fd"></a-box>
+      <a-text value="CONSULTATION" position="0 3.3 -0.1" align="center" color="#1565c0" width="5"></a-text>
+    </a-entity>
+
+    <!-- ========== PHARMACY ========== -->
+    <a-entity id="pharmacy" position="-8 0 -18">
+      <a-box position="0 2 0" width="7" height="4" depth="0.2" material="color: #e8f5e9"></a-box>
+      <a-box position="0 2 -6" width="7" height="4" depth="0.2" material="color: #e8f5e9"></a-box>
+      <a-box position="-3.5 2 -3" width="0.2" height="4" depth="6.2" material="color: #e8f5e9"></a-box>
+      <a-box position="3.5 2 -3" width="0.2" height="4" depth="6.2" material="color: #e8f5e9"></a-box>
+
+      <a-box position="0 0.7 -2" width="5" height="1.4" depth="1.2" material="color: #2e7d32" class="interactive"
+             data-service="pharmacy"
+             data-title="Pharmacy"
+             data-desc="Collect prescribed medication or ask the pharmacist about over-the-counter options, dosages, and side effects."></a-box>
+      <a-box position="0 1.5 -2" width="5.1" height="0.1" depth="1.3" material="color: #1b5e20"></a-box>
+      <a-box position="-2 2.2 -4" width="2" height="2" depth="0.3" material="color: #c8e6c9"></a-box>
+      <a-box position="2 2.2 -4" width="2" height="2" depth="0.3" material="color: #c8e6c9"></a-box>
+      <a-text value="PHARMACY" position="0 3.3 -0.1" align="center" color="#2e7d32" width="5"></a-text>
+    </a-entity>
+
+    <!-- ========== EMERGENCY ========== -->
+    <a-entity id="emergency" position="8 0 -30">
+      <a-box position="0 2 0" width="8" height="4" depth="0.2" material="color: #ffebee"></a-box>
+      <a-box position="0 2 -7" width="8" height="4" depth="0.2" material="color: #ffebee"></a-box>
+      <a-box position="-4 2 -3.5" width="0.2" height="4" depth="7.2" material="color: #ffebee"></a-box>
+      <a-box position="4 2 -3.5" width="0.2" height="4" depth="7.2" material="color: #ffebee"></a-box>
+
+      <a-box position="0 0.55 -2" width="2.4" height="0.5" depth="1.1" material="color: #c62828" class="interactive"
+             data-service="emergency"
+             data-title="Emergency / Triage"
+             data-desc="Urgent care station. Report severe symptoms here. In a real emergency always call local emergency services."></a-box>
+      <a-box position="0 0.9 -2" width="2.4" height="0.15" depth="1.1" material="color: #ffffff"></a-box>
+      <a-box position="0 3.2 0.1" width="1.4" height="0.25" depth="0.1" material="color: #c62828"></a-box>
+      <a-box position="0 3.2 0.1" width="0.25" height="1.4" depth="0.1" material="color: #c62828"></a-box>
+      <a-text value="EMERGENCY" position="0 2.5 0.1" align="center" color="#b71c1c" width="5"></a-text>
+    </a-entity>
+
+    <!-- ========== LABORATORY ========== -->
+    <a-entity id="lab" position="-8 0 -30">
+      <a-box position="0 2 0" width="8" height="4" depth="0.2" material="color: #e3f2fd"></a-box>
+      <a-box position="0 2 -7" width="8" height="4" depth="0.2" material="color: #e3f2fd"></a-box>
+      <a-box position="-4 2 -3.5" width="0.2" height="4" depth="7.2" material="color: #e3f2fd"></a-box>
+      <a-box position="4 2 -3.5" width="0.2" height="4" depth="7.2" material="color: #e3f2fd"></a-box>
+
+      <a-box position="-1.5 0.7 -2" width="2.5" height="1.4" depth="1.3" material="color: #1565c0" class="interactive"
+             data-service="lab"
+             data-title="Laboratory"
+             data-desc="Blood tests, sample collection and diagnostic results."></a-box>
+      <a-box position="1.5 0.7 -2" width="2.5" height="1.4" depth="1.3" material="color: #1565c0"></a-box>
+      <a-cylinder position="-1.5 1.7 -2" radius="0.25" height="0.5" material="color: #90caf9"></a-cylinder>
+      <a-text value="LABORATORY" position="0 3.3 0.1" align="center" color="#0d47a1" width="5"></a-text>
+    </a-entity>
+
+    <!-- ========== PATIENT WARD ========== -->
+    <a-entity id="ward" position="0 0 -38">
+      <a-box position="0 2 0" width="12" height="4" depth="0.2" material="color: #f3e5f5"></a-box>
+      <a-box position="0 2 -6" width="12" height="4" depth="0.2" material="color: #f3e5f5"></a-box>
+      <a-box position="-6 2 -3" width="0.2" height="4" depth="6.2" material="color: #f3e5f5"></a-box>
+      <a-box position="6 2 -3" width="0.2" height="4" depth="6.2" material="color: #f3e5f5"></a-box>
+
+      <a-box position="-3 0.5 -2" width="2.2" height="0.6" depth="1.1" material="color: #ffffff" class="interactive"
+             data-service="patient"
+             data-title="Patient Ward"
+             data-desc="Rest and recovery area. Beds are equipped with call buttons."></a-box>
+      <a-box position="3 0.5 -2" width="2.2" height="0.6" depth="1.1" material="color: #ffffff"></a-box>
+      <a-box position="-3 0.9 -2" width="2.2" height="0.12" depth="1.1" material="color: #ce93d8"></a-box>
+      <a-box position="3 0.9 -2" width="2.2" height="0.12" depth="1.1" material="color: #ce93d8"></a-box>
+      <a-text value="PATIENT WARD" position="0 3.3 0.1" align="center" color="#6a1b9a" width="6"></a-text>
+    </a-entity>
+
+    <!-- ========== CAFETERIA ========== -->
+    <a-entity id="cafeteria" position="14 0 -12">
+      <a-box position="0 2 -3" width="8" height="4" depth="0.2" material="color: #fff3e0"></a-box>
+      <a-box position="0 2 3" width="8" height="4" depth="0.2" material="color: #fff3e0"></a-box>
+      <a-box position="-4 2 0" width="0.2" height="4" depth="6.2" material="color: #fff3e0"></a-box>
+      <a-box position="4 2 0" width="0.2" height="4" depth="6.2" material="color: #fff3e0"></a-box>
+
+      <a-box position="0 0.7 0" width="5" height="0.9" depth="1.2" material="color: #ef6c00" class="interactive"
+             data-service="cafeteria"
+             data-title="Cafeteria"
+             data-desc="Healthy meals and refreshments for patients and visitors. Take a break and recharge."></a-box>
+      <a-text value="CAFETERIA" position="0 3.3 -2.8" align="center" color="#ef6c00" width="5"></a-text>
+    </a-entity>
+
+    <!-- ========== PEOPLE / NPCs ========== -->
+    <!-- Receptionist -->
+    <a-entity id="npc-receptionist" position="0 0 -5.2" class="npc">
+      <a-cylinder position="0 0.9 0" radius="0.22" height="1.0" material="color: #4fc3f7"></a-cylinder>
+      <a-sphere position="0 1.55 0" radius="0.22" material="color: #ffccbc"></a-sphere>
+      <a-box position="0 0.35 0" width="0.45" height="0.7" depth="0.25" material="color: #1565c0"></a-box>
+      <a-text value="Receptionist" position="0 2.1 0" align="center" color="#333" width="2.5" scale="0.6 0.6 0.6"></a-text>
+    </a-entity>
+
+    <!-- Doctor -->
+    <a-entity id="npc-doctor" position="8.5 0 -21" class="npc">
+      <a-cylinder position="0 0.9 0" radius="0.22" height="1.0" material="color: #ffffff"></a-cylinder>
+      <a-sphere position="0 1.55 0" radius="0.22" material="color: #ffccbc"></a-sphere>
+      <a-box position="0 0.35 0" width="0.45" height="0.7" depth="0.25" material="color: #e3f2fd"></a-box>
+      <a-text value="Dr. Smith" position="0 2.1 0" align="center" color="#1565c0" width="2.5" scale="0.6 0.6 0.6"></a-text>
+    </a-entity>
+
+    <!-- Nurse -->
+    <a-entity id="npc-nurse" position="6.5 0 -26" class="npc">
+      <a-cylinder position="0 0.9 0" radius="0.2" height="1.0" material="color: #f8bbd0"></a-cylinder>
+      <a-sphere position="0 1.55 0" radius="0.2" material="color: #ffccbc"></a-sphere>
+      <a-box position="0 0.35 0" width="0.4" height="0.7" depth="0.22" material="color: #f48fb1"></a-box>
+      <a-text value="Nurse Ana" position="0 2.05 0" align="center" color="#ad1457" width="2.5" scale="0.55 0.55 0.55"></a-text>
+    </a-entity>
+
+    <!-- Pharmacist -->
+    <a-entity id="npc-pharmacist" position="-8 0 -19.5" class="npc">
+      <a-cylinder position="0 0.9 0" radius="0.21" height="1.0" material="color: #a5d6a7"></a-cylinder>
+      <a-sphere position="0 1.55 0" radius="0.21" material="color: #ffccbc"></a-sphere>
+      <a-box position="0 0.35 0" width="0.42" height="0.7" depth="0.23" material="color: #66bb6a"></a-box>
+      <a-text value="Pharmacist" position="0 2.1 0" align="center" color="#2e7d32" width="2.5" scale="0.55 0.55 0.55"></a-text>
+    </a-entity>
+
+    <!-- Patient sitting -->
+    <a-entity id="npc-patient" position="-3.5 0 -3" class="npc">
+      <a-cylinder position="0 0.55 0" radius="0.2" height="0.7" material="color: #b0bec5"></a-cylinder>
+      <a-sphere position="0 1.1 0" radius="0.2" material="color: #ffccbc"></a-sphere>
+      <a-text value="Patient" position="0 1.6 0" align="center" color="#546e7a" width="2" scale="0.5 0.5 0.5"></a-text>
+    </a-entity>
+
+    <!-- Walking staff -->
+    <a-entity id="npc-walker" position="-2 0 -12" class="npc"
+              animation="property: position; to: 2 0 -12; dir: alternate; dur: 9000; loop: true; easing: linear">
+      <a-cylinder position="0 0.9 0" radius="0.2" height="1.0" material="color: #90caf9"></a-cylinder>
+      <a-sphere position="0 1.55 0" radius="0.2" material="color: #ffccbc"></a-sphere>
+      <a-box position="0 0.35 0" width="0.4" height="0.7" depth="0.22" material="color: #42a5f5"></a-box>
+    </a-entity>
+
+    <!-- ========== GLOWING INTERACTIVE MARKERS ========== -->
+    <a-sphere position="0 1.6 -6" radius="0.12"
+              material="color: #4fc3f7; opacity: 0.7; emissive: #4fc3f7; emissiveIntensity: 0.6"
+              animation="property: scale; to: 1.3 1.3 1.3; dir: alternate; dur: 1200; loop: true"
+              class="interactive" data-service="reception"
+              data-title="Reception Desk"
+              data-desc="Welcome to Virtual Hospital. Please check in here. Staff can direct you to the right department, book appointments, or answer questions about services."></a-sphere>
+
+    <a-sphere position="8 1.4 -21.5" radius="0.1"
+              material="color: #4fc3f7; opacity: 0.7; emissive: #4fc3f7"
+              animation="property: scale; to: 1.25 1.25 1.25; dir: alternate; dur: 1100; loop: true"
+              class="interactive" data-service="consultation"
+              data-title="Consultation Room"
+              data-desc="Speak with a doctor. Describe your symptoms. The virtual physician will guide you through next steps, referrals, or basic advice."></a-sphere>
+
+    <a-sphere position="-8 1.5 -20" radius="0.1"
+              material="color: #66bb6a; opacity: 0.7; emissive: #66bb6a"
+              animation="property: scale; to: 1.25 1.25 1.25; dir: alternate; dur: 1300; loop: true"
+              class="interactive" data-service="pharmacy"
+              data-title="Pharmacy"
+              data-desc="Collect prescribed medication or ask the pharmacist about over-the-counter options, dosages, and side effects."></a-sphere>
+
+    <a-sphere position="6 1.3 -31" radius="0.1"
+              material="color: #ef5350; opacity: 0.7; emissive: #ef5350"
+              animation="property: scale; to: 1.3 1.3 1.3; dir: alternate; dur: 900; loop: true"
+              class="interactive" data-service="emergency"
+              data-title="Emergency / Triage"
+              data-desc="Urgent care station. Report severe symptoms here. In a real emergency always call local emergency services."></a-sphere>
+
+    <a-sphere position="-8 1.4 -30.5" radius="0.1"
+              material="color: #42a5f5; opacity: 0.7; emissive: #42a5f5"
+              animation="property: scale; to: 1.25 1.25 1.25; dir: alternate; dur: 1150; loop: true"
+              class="interactive" data-service="lab"
+              data-title="Laboratory"
+              data-desc="Blood tests, sample collection and diagnostic results."></a-sphere>
+
+    <a-sphere position="0 1.2 -38" radius="0.1"
+              material="color: #ab47bc; opacity: 0.7; emissive: #ab47bc"
+              animation="property: scale; to: 1.25 1.25 1.25; dir: alternate; dur: 1250; loop: true"
+              class="interactive" data-service="patient"
+              data-title="Patient Ward"
+              data-desc="Rest and recovery area. Beds are equipped with call buttons."></a-sphere>
+
+    <a-sky color="#d6eaf8"></a-sky>
+  </a-scene>
+
+  <script src="app.js"></script>
+</body>
+</html>
